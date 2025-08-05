@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Mental Health Support Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        #chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        #chat-container::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 3px;
+        }
+        #chat-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .gemini-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .gemini-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-lg h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl shadow-slate-300/60">
+        
+        <header class="bg-slate-800 text-white p-4 rounded-t-2xl flex items-center shadow-lg">
+            <div class="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mr-4 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold">Mental Health Support</h1>
+                <p class="text-sm text-slate-300">By Cognitive Coders</p>
+            </div>
+        </header>
+
+        
+        <main id="chat-container" class="flex-1 p-6 overflow-y-auto space-y-4">
+           
+            <div class="flex items-start gap-3">
+                <div class="bg-slate-700 text-white p-3 rounded-full text-sm font-bold shrink-0">Bot</div>
+                <div class="bg-slate-200 text-slate-800 p-3 rounded-lg max-w-xs">
+                    <p>Hello! I'm a supportive AI assistant, here to listen and offer a safe space to talk. How are you feeling today?</p>
+                </div>
+            </div>
+            
+        </main>
+
+        
+        <footer class="p-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl">
+            <form id="chat-form" class="flex items-center space-x-4">
+                <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off" class="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow disabled:bg-slate-100" >
+                <button type="submit" id="send-button" class="bg-emerald-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-transform transform hover:scale-105 disabled:bg-emerald-300 disabled:cursor-not-allowed">
+                    Send
+                </button>
+            </form>
+        </footer>
+    </div>
+    <script src="config.js"></script>
+    <script>
+        
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+       
+        const systemPrompt = `You are a friendly, compassionate, and empathetic mental health support chatbot. Your purpose is to provide a safe and non-judgmental space for users to express their feelings.
+        - Your name is 'Layla'.
+        - Always be supportive and understanding.
+        - Keep your responses concise and easy to read (2-3 sentences max).
+        - Do NOT provide medical advice, diagnoses, or treatment plans.
+        - If the user mentions self-harm or a crisis, gently guide them to seek professional help immediately by saying: "It sounds like you're going through a lot right now, and it's brave of you to share. For immediate support, please reach out to a crisis hotline or a mental health professional. You are not alone."
+        - Occasionally, ask open-ended questions to encourage the user to share more.
+        - Do not use markdown formatting in your responses.`;
+
+        let chatHistory = [{ role: "user", parts: [{ text: systemPrompt }] }, { role: "model", parts: [{ text: "Understood. I am Layla, a supportive AI assistant. I will provide a safe space for users to talk about their feelings." }] }];
+        
+        
+        //const apiKey = "AIzaSyBjyLF78uAsJE1b1qqmB6EZqx2MRXpibkw"; // key.
+
+        
+        function appendMessage(sender, message, withDeeperDive = false) {
+            let messageBubble;
+            const sanitizedMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            if (sender === 'You') {
+                messageBubble = `
+                    <div class="flex items-start gap-3 justify-end">
+                        <div class="bg-emerald-500 text-white p-3 rounded-lg max-w-xs">
+                            <p>${sanitizedMessage}</p>
+                        </div>
+                        <div class="bg-slate-700 text-white p-3 rounded-full text-sm font-bold shrink-0">You</div>
+                    </div>`;
+            } else {
+                let deeperDiveButton = '';
+                if (withDeeperDive) {
+                    deeperDiveButton = `
+                    <div class="mt-2">
+                        <button class="gemini-button text-sm bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-left w-auto" data-prompt="${sanitizedMessage}">
+                            ✨ Deeper Dive
+                        </button>
+                    </div>`;
+                }
+                messageBubble = `
+                    <div class="flex items-start gap-3">
+                        <div class="bg-slate-700 text-white p-3 rounded-full text-sm font-bold shrink-0">Bot</div>
+                        <div class="bg-slate-200 text-slate-800 p-3 rounded-lg max-w-xs">
+                            <p>${sanitizedMessage}</p>
+                            ${deeperDiveButton}
+                        </div>
+                    </div>`;
+            }
+            chatContainer.innerHTML += messageBubble;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        
+        function showTypingIndicator(show) {
+             let indicator = document.getElementById('typing-indicator');
+             if (show) {
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'typing-indicator';
+                    indicator.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <div class="bg-slate-700 text-white p-3 rounded-full text-sm font-bold shrink-0">Bot</div>
+                            <div class="bg-slate-200 text-slate-800 p-3 rounded-lg max-w-xs">
+                                <div class="flex items-center space-x-1">
+                                    <span class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0s;"></span>
+                                    <span class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></span>
+                                    <span class="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></span>
+                                </div>
+                            </div>
+                        </div>`;
+                    chatContainer.appendChild(indicator);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+             } else {
+                if (indicator) {
+                    indicator.remove();
+                }
+             }
+        }
+
+
+        
+        async function getGeminiResponse(currentChatHistory, retries = 3, delay = 1000) {
+            const finalApiKey = typeof __initial_api_key != 'undefined' ? __initial_api_key : apiKey;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${finalApiKey}`;
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: currentChatHistory })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429 && retries > 0) { // Throttling
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return getGeminiResponse(currentChatHistory, retries - 1, delay * 2);
+                    }
+                    throw new Error(`API Error: ${response.statusText} (Status: ${response.status})`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts[0].text) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                   return "I'm not sure how to respond to that. Could you try rephrasing?";
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                return "I'm having a little trouble connecting right now. Please try again in a moment.";
+            }
+        }
+        
+        // MAIN EVENT LISTENERS
+
+        
+        chatForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const userMessage = userInput.value.trim();
+            if (userMessage === '') return;
+
+            // Disable form and show typing indicator
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            appendMessage('You', userMessage);
+            showTypingIndicator(true);
+
+            // Add user message to history
+            chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
+            // Get bot response
+            const botResponse = await getGeminiResponse(chatHistory);
+            
+            // Add bot response to history
+            chatHistory.push({ role: "model", parts: [{ text: botResponse }] });
+
+            // Remove typing indicator and show response
+            showTypingIndicator(false);
+            const canHaveDeeperDive = !botResponse.toLowerCase().includes("hotline") && !botResponse.toLowerCase().includes("trouble connecting");
+            appendMessage('Bot', botResponse, canHaveDeeperDive);
+
+            // Re-enable form
+            userInput.value = '';
+            userInput.disabled = false;
+            sendButton.disabled = false;
+            userInput.focus();
+        });
+
+        
+        chatContainer.addEventListener('click', async function(event) {
+            if (event.target.classList.contains('gemini-button')) {
+                const button = event.target;
+                const userPrompt = button.dataset.prompt;
+                
+                button.textContent = 'Thinking...';
+                button.disabled = true;
+
+                const deeperDivePrompt = `The user is feeling a certain way, and I (the bot) just responded with: "${userPrompt}". Based on this, generate a single, simple, and actionable "deeper dive" activity. It should be one of the following: a short (1-2 sentence) mindfulness exercise, a single journaling prompt, or a simple reframing question. Make it very concise and directly related to the user's likely emotion.`;
+                
+               
+                const tempHistory = [...chatHistory, { role: "user", parts: [{ text: deeperDivePrompt }] }];
+                
+                const botResponse = await getGeminiResponse(tempHistory);
+
+                
+                appendMessage('Bot', botResponse);
+                
+                
+                button.parentElement.remove();
+            }
+        });
+
+    </script>
+</body>
+</html>
